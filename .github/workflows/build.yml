@@ -1,0 +1,182 @@
+name: Build Ukrainian Update App
+on: 
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+    
+    - name: Build Windows executable
+      run: |
+        pyinstaller --onefile --windowed --name="УкраїнськеОновлення-Windows" --icon=icon.ico update_window.py
+    
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-app
+        path: dist/УкраїнськеОновлення-Windows.exe
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+    
+    - name: Build Mac application
+      run: |
+        pyinstaller --onedir --windowed --name="УкраїнськеОновлення-Mac" --osx-bundle-identifier=com.ukrainian.update update_window.py
+    
+    - name: Create DMG (optional)
+      run: |
+        # Устанавливаем create-dmg если нужен красивый DMG файл
+        if command -v create-dmg &> /dev/null; then
+          create-dmg \
+            --volname "УкраїнськеОновлення" \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --app-drop-link 425 200 \
+            "УкраїнськеОновлення-Mac.dmg" \
+            "dist/"
+        else
+          echo "create-dmg not available, skipping DMG creation"
+        fi
+    
+    - name: Archive Mac app
+      run: |
+        cd dist
+        zip -r "../УкраїнськеОновлення-Mac.zip" "УкраїнськеОновлення-Mac.app"
+    
+    - name: Upload Mac artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: mac-app
+        path: |
+          УкраїнськеОновлення-Mac.zip
+          *.dmg
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-tk
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+    
+    - name: Build Linux executable
+      run: |
+        pyinstaller --onefile --windowed --name="УкраїнськеОновлення-Linux" update_window.py
+    
+    - name: Make executable
+      run: |
+        chmod +x dist/УкраїнськеОновлення-Linux
+    
+    - name: Upload Linux artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-app
+        path: dist/УкраїнськеОновлення-Linux
+
+  create-release:
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: release-${{ steps.date.outputs.date }}
+        release_name: Релиз ${{ steps.date.outputs.date }}
+        body: |
+          Автоматично створений реліз УкраїнськеОновлення
+          
+          Завантажте версію для вашої операційної системи:
+          - Windows: УкраїнськеОновлення-Windows.exe
+          - Mac: УкраїнськеОновлення-Mac.zip 
+          - Linux: УкраїнськеОновлення-Linux
+          
+          Інструкції:
+          - Windows: просто запустіть .exe файл
+          - Mac: розпакуйте .zip і перетягніть .app в папку Applications
+          - Linux: зробіть файл виконуваним та запустіть
+        draft: false
+        prerelease: false
+    
+    - name: Upload Windows Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: windows-app/УкраїнськеОновлення-Windows.exe
+        asset_name: УкраїнськеОновлення-Windows.exe
+        asset_content_type: application/octet-stream
+    
+    - name: Upload Mac Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: mac-app/УкраїнськеОновлення-Mac.zip
+        asset_name: УкраїнськеОновлення-Mac.zip
+        asset_content_type: application/zip
+    
+    - name: Upload Linux Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: linux-app/УкраїнськеОновлення-Linux
+        asset_name: УкраїнськеОновлення-Linux
+        asset_content_type: application/octet-stream
