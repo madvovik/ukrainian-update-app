@@ -28,7 +28,7 @@ jobs:
         pyinstaller --onefile --windowed --name="УкраїнськеОновлення-Windows" update_window.py
     
     - name: Upload Windows artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-app
         path: dist/УкраїнськеОновлення-Windows.exe
@@ -90,7 +90,7 @@ jobs:
         zip -r "../УкраїнськеОновлення-Mac.zip" "УкраїнськеОновлення.app"
     
     - name: Upload Mac artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: mac-app
         path: УкраїнськеОновлення-Mac.zip
@@ -125,7 +125,7 @@ jobs:
         chmod +x dist/УкраїнськеОновлення-Linux
     
     - name: Upload Linux artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: linux-app
         path: dist/УкраїнськеОновлення-Linux
