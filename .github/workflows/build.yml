@@ -25,7 +25,7 @@ jobs:
     
     - name: Build Windows executable
       run: |
-        pyinstaller --onefile --windowed --name="УкраїнськеОновлення-Windows" --icon=icon.ico update_window.py
+        pyinstaller --onefile --windowed --name="УкраїнськеОновлення-Windows" update_window.py
     
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v3
@@ -51,90 +51,49 @@ jobs:
     
     - name: Build Mac application
       run: |
-        # Создаем .app bundle с правильными параметрами для Mac
-        pyinstaller --onedir --windowed \
-          --name="УкраїнськеОновлення" \
-          --osx-bundle-identifier=com.ukrainian.update \
-          --target-arch=universal2 \
-          update_window.py
-        
-        # Проверяем что создался .app файл
+        pyinstaller --onedir --windowed --name="УкраїнськеОновлення" update_window.py
+    
+    - name: Check build result
+      run: |
         ls -la dist/
         if [ -d "dist/УкраїнськеОновлення.app" ]; then
-          echo "✅ .app bundle успешно создан"
-        else
-          echo "❌ .app bundle не создан, используем fallback"
-          # Создаем .app вручную если pyinstaller не сработал
-          mkdir -p "dist/УкраїнськеОновлення.app/Contents/MacOS"
-          mkdir -p "dist/УкраїнськеОновлення.app/Contents/Resources"
-          
-          # Ищем исполняемый файл
-          if [ -f "dist/УкраїнськеОновлення/УкраїнськеОновлення" ]; then
-            cp -r "dist/УкраїнськеОновлення/"* "dist/УкраїнськеОновлення.app/Contents/MacOS/"
-          fi
-          
-          # Создаем Info.plist
-          cat > "dist/УкраїнськеОновлення.app/Contents/Info.plist" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key>
-    <string>УкраїнськеОновлення</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.ukrainian.update</string>
-    <key>CFBundleName</key>
-    <string>УкраїнськеОновлення</string>
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleSignature</key>
-    <string>????</string>
-</dict>
-</plist>
-EOF
-          
-          # Делаем исполняемым
-          chmod +x "dist/УкраїнськеОновлення.app/Contents/MacOS/УкраїнськеОновлення"
-        fi
-    
-    - name: Create DMG (optional)
-      run: |
-        # Устанавливаем create-dmg если нужен красивый DMG файл
-        if command -v create-dmg &> /dev/null; then
-          create-dmg \
-            --volname "УкраїнськеОновлення" \
-            --window-size 600 400 \
-            --icon-size 100 \
-            --app-drop-link 425 200 \
-            "УкраїнськеОновлення-Mac.dmg" \
-            "dist/"
-        else
-          echo "create-dmg not available, skipping DMG creation"
+          echo "App bundle created successfully"
+        elif [ -d "dist/УкраїнськеОновлення" ]; then
+          echo "Directory created, making app bundle manually"
+          mkdir -p "УкраїнськеОновлення.app/Contents/MacOS"
+          cp -r "dist/УкраїнськеОновлення/"* "УкраїнськеОновлення.app/Contents/MacOS/"
+          cat > "УкраїнськеОновлення.app/Contents/Info.plist" << 'EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>УкраїнськеОновлення</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.ukrainian.update</string>
+            <key>CFBundleName</key>
+            <string>УкраїнськеОновлення</string>
+            <key>CFBundleVersion</key>
+            <string>1.0</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+        </dict>
+        </plist>
+        EOF
+          chmod +x "УкраїнськеОновлення.app/Contents/MacOS/УкраїнськеОновлення"
+          mv "УкраїнськеОновлення.app" "dist/"
         fi
     
     - name: Archive Mac app
       run: |
         cd dist
-        if [ -d "УкраїнськеОновлення.app" ]; then
-          # Создаем ZIP архив с .app
-          zip -r "../УкраїнськеОновлення-Mac.zip" "УкраїнськеОновлення.app"
-          echo "✅ Создан архив с .app файлом"
-        else
-          echo "❌ .app файл не найден"
-          ls -la
-        fi
+        zip -r "../УкраїнськеОновлення-Mac.zip" "УкраїнськеОновлення.app"
     
     - name: Upload Mac artifact
       uses: actions/upload-artifact@v3
       with:
         name: mac-app
-        path: |
-          УкраїнськеОновлення-Mac.zip
-          *.dmg
+        path: УкраїнськеОновлення-Mac.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -170,68 +129,3 @@ EOF
       with:
         name: linux-app
         path: dist/УкраїнськеОновлення-Linux
-
-  create-release:
-    needs: [build-windows, build-mac, build-linux]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v3
-    
-    - name: Get current date
-      id: date
-      run: echo "date=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
-    
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: release-${{ steps.date.outputs.date }}
-        release_name: Релиз ${{ steps.date.outputs.date }}
-        body: |
-          Автоматично створений реліз УкраїнськеОновлення
-          
-          Завантажте версію для вашої операційної системи:
-          - Windows: УкраїнськеОновлення-Windows.exe
-          - Mac: УкраїнськеОновлення-Mac.zip 
-          - Linux: УкраїнськеОновлення-Linux
-          
-          Інструкції:
-          - Windows: просто запустіть .exe файл
-          - Mac: розпакуйте .zip і перетягніть .app в папку Applications
-          - Linux: зробіть файл виконуваним та запустіть
-        draft: false
-        prerelease: false
-    
-    - name: Upload Windows Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: windows-app/УкраїнськеОновлення-Windows.exe
-        asset_name: УкраїнськеОновлення-Windows.exe
-        asset_content_type: application/octet-stream
-    
-    - name: Upload Mac Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: mac-app/УкраїнськеОновлення-Mac.zip
-        asset_name: УкраїнськеОновлення-Mac.zip
-        asset_content_type: application/zip
-    
-    - name: Upload Linux Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: linux-app/УкраїнськеОновлення-Linux
-        asset_name: УкраїнськеОновлення-Linux
-        asset_content_type: application/octet-stream
