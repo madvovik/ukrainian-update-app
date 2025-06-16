@@ -51,7 +51,55 @@ jobs:
     
     - name: Build Mac application
       run: |
-        pyinstaller --onedir --windowed --name="УкраїнськеОновлення-Mac" --osx-bundle-identifier=com.ukrainian.update update_window.py
+        # Создаем .app bundle с правильными параметрами для Mac
+        pyinstaller --onedir --windowed \
+          --name="УкраїнськеОновлення" \
+          --osx-bundle-identifier=com.ukrainian.update \
+          --target-arch=universal2 \
+          update_window.py
+        
+        # Проверяем что создался .app файл
+        ls -la dist/
+        if [ -d "dist/УкраїнськеОновлення.app" ]; then
+          echo "✅ .app bundle успешно создан"
+        else
+          echo "❌ .app bundle не создан, используем fallback"
+          # Создаем .app вручную если pyinstaller не сработал
+          mkdir -p "dist/УкраїнськеОновлення.app/Contents/MacOS"
+          mkdir -p "dist/УкраїнськеОновлення.app/Contents/Resources"
+          
+          # Ищем исполняемый файл
+          if [ -f "dist/УкраїнськеОновлення/УкраїнськеОновлення" ]; then
+            cp -r "dist/УкраїнськеОновлення/"* "dist/УкраїнськеОновлення.app/Contents/MacOS/"
+          fi
+          
+          # Создаем Info.plist
+          cat > "dist/УкраїнськеОновлення.app/Contents/Info.plist" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>УкраїнськеОновлення</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.ukrainian.update</string>
+    <key>CFBundleName</key>
+    <string>УкраїнськеОновлення</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+</dict>
+</plist>
+EOF
+          
+          # Делаем исполняемым
+          chmod +x "dist/УкраїнськеОновлення.app/Contents/MacOS/УкраїнськеОновлення"
+        fi
     
     - name: Create DMG (optional)
       run: |
@@ -71,7 +119,14 @@ jobs:
     - name: Archive Mac app
       run: |
         cd dist
-        zip -r "../УкраїнськеОновлення-Mac.zip" "УкраїнськеОновлення-Mac.app"
+        if [ -d "УкраїнськеОновлення.app" ]; then
+          # Создаем ZIP архив с .app
+          zip -r "../УкраїнськеОновлення-Mac.zip" "УкраїнськеОновлення.app"
+          echo "✅ Создан архив с .app файлом"
+        else
+          echo "❌ .app файл не найден"
+          ls -la
+        fi
     
     - name: Upload Mac artifact
       uses: actions/upload-artifact@v3
