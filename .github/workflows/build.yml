@@ -2,8 +2,6 @@ name: Build Ukrainian Update App
 on: 
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -23,15 +21,25 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
     
+    - name: List files to debug
+      run: |
+        dir
+        echo "Looking for update_window.py..."
+        if exist update_window.py (echo "Found update_window.py") else (echo "update_window.py NOT FOUND")
+    
     - name: Build Windows executable
       run: |
-        pyinstaller --onefile --windowed --name="УкраїнськеОновлення-Windows" update_window.py
+        pyinstaller --onefile --windowed --name="UkrainianUpdate-Windows" update_window.py
+    
+    - name: List built files
+      run: |
+        dir dist
     
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: windows-app
-        path: dist/УкраїнськеОновлення-Windows.exe
+        path: dist/UkrainianUpdate-Windows.exe
 
   build-mac:
     runs-on: macos-latest
@@ -49,29 +57,37 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
     
+    - name: List files to debug
+      run: |
+        ls -la
+        echo "Looking for update_window.py..."
+        if [ -f "update_window.py" ]; then echo "Found update_window.py"; else echo "update_window.py NOT FOUND"; fi
+    
     - name: Build Mac application
       run: |
-        pyinstaller --onedir --windowed --name="УкраїнськеОновлення" update_window.py
+        pyinstaller --onedir --windowed --name="UkrainianUpdate" update_window.py
     
-    - name: Check build result
+    - name: Check build result and create app
       run: |
         ls -la dist/
-        if [ -d "dist/УкраїнськеОновлення.app" ]; then
+        if [ -d "dist/UkrainianUpdate.app" ]; then
           echo "App bundle created successfully"
-        elif [ -d "dist/УкраїнськеОновлення" ]; then
-          echo "Directory created, making app bundle manually"
-          mkdir -p "УкраїнськеОновлення.app/Contents/MacOS"
-          cp -r "dist/УкраїнськеОновлення/"* "УкраїнськеОновлення.app/Contents/MacOS/"
-          cat > "УкраїнськеОновлення.app/Contents/Info.plist" << 'EOF'
+        elif [ -d "dist/UkrainianUpdate" ]; then
+          echo "Creating app bundle manually..."
+          mkdir -p "UkrainianUpdate.app/Contents/MacOS"
+          cp -r "dist/UkrainianUpdate/"* "UkrainianUpdate.app/Contents/MacOS/"
+          cat > "UkrainianUpdate.app/Contents/Info.plist" << 'EOF'
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
         <dict>
             <key>CFBundleExecutable</key>
-            <string>УкраїнськеОновлення</string>
+            <string>UkrainianUpdate</string>
             <key>CFBundleIdentifier</key>
             <string>com.ukrainian.update</string>
             <key>CFBundleName</key>
+            <string>UkrainianUpdate</string>
+            <key>CFBundleDisplayName</key>
             <string>УкраїнськеОновлення</string>
             <key>CFBundleVersion</key>
             <string>1.0</string>
@@ -80,20 +96,24 @@ jobs:
         </dict>
         </plist>
         EOF
-          chmod +x "УкраїнськеОновлення.app/Contents/MacOS/УкраїнськеОновлення"
-          mv "УкраїнськеОновлення.app" "dist/"
+          chmod +x "UkrainianUpdate.app/Contents/MacOS/UkrainianUpdate"
+          mv "UkrainianUpdate.app" "dist/"
+          echo "App bundle created manually"
+        else
+          echo "ERROR: No build output found"
+          exit 1
         fi
     
     - name: Archive Mac app
       run: |
         cd dist
-        zip -r "../УкраїнськеОновлення-Mac.zip" "УкраїнськеОновлення.app"
+        zip -r "../UkrainianUpdate-Mac.zip" "UkrainianUpdate.app"
     
     - name: Upload Mac artifact
       uses: actions/upload-artifact@v4
       with:
         name: mac-app
-        path: УкраїнськеОновлення-Mac.zip
+        path: UkrainianUpdate-Mac.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -116,16 +136,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
     
+    - name: List files to debug
+      run: |
+        ls -la
+        echo "Looking for update_window.py..."
+        if [ -f "update_window.py" ]; then echo "Found update_window.py"; else echo "update_window.py NOT FOUND"; fi
+    
     - name: Build Linux executable
       run: |
-        pyinstaller --onefile --windowed --name="УкраїнськеОновлення-Linux" update_window.py
+        pyinstaller --onefile --windowed --name="UkrainianUpdate-Linux" update_window.py
     
-    - name: Make executable
+    - name: Make executable and list files
       run: |
-        chmod +x dist/УкраїнськеОновлення-Linux
+        chmod +x dist/UkrainianUpdate-Linux
+        ls -la dist/
     
     - name: Upload Linux artifact
       uses: actions/upload-artifact@v4
       with:
         name: linux-app
-        path: dist/УкраїнськеОновлення-Linux
+        path: dist/UkrainianUpdate-Linux
