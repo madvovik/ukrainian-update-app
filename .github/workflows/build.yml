@@ -1,7 +1,5 @@
 name: Build Ukrainian Update App
 on: 
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -16,26 +14,19 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
+    - name: List files
+      run: Get-ChildItem
     
-    - name: List files to debug
-      run: |
-        dir
-        echo "Looking for update_window.py..."
-        if exist update_window.py (echo "Found update_window.py") else (echo "update_window.py NOT FOUND")
+    - name: Install PyInstaller
+      run: pip install pyinstaller
     
-    - name: Build Windows executable
-      run: |
-        pyinstaller --onefile --windowed --name="UkrainianUpdate-Windows" update_window.py
+    - name: Build executable
+      run: pyinstaller --onefile --windowed --name="UkrainianUpdate-Windows" update_window.py
     
-    - name: List built files
-      run: |
-        dir dist
+    - name: Check dist folder
+      run: Get-ChildItem dist
     
-    - name: Upload Windows artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: windows-app
@@ -52,68 +43,23 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
+    - name: List files
+      run: ls -la
     
-    - name: List files to debug
-      run: |
-        ls -la
-        echo "Looking for update_window.py..."
-        if [ -f "update_window.py" ]; then echo "Found update_window.py"; else echo "update_window.py NOT FOUND"; fi
+    - name: Install PyInstaller
+      run: pip install pyinstaller
     
-    - name: Build Mac application
-      run: |
-        pyinstaller --onedir --windowed --name="UkrainianUpdate" update_window.py
+    - name: Build Mac app
+      run: pyinstaller --onefile --windowed --name="UkrainianUpdate-Mac" update_window.py
     
-    - name: Check build result and create app
-      run: |
-        ls -la dist/
-        if [ -d "dist/UkrainianUpdate.app" ]; then
-          echo "App bundle created successfully"
-        elif [ -d "dist/UkrainianUpdate" ]; then
-          echo "Creating app bundle manually..."
-          mkdir -p "UkrainianUpdate.app/Contents/MacOS"
-          cp -r "dist/UkrainianUpdate/"* "UkrainianUpdate.app/Contents/MacOS/"
-          cat > "UkrainianUpdate.app/Contents/Info.plist" << 'EOF'
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleExecutable</key>
-            <string>UkrainianUpdate</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.ukrainian.update</string>
-            <key>CFBundleName</key>
-            <string>UkrainianUpdate</string>
-            <key>CFBundleDisplayName</key>
-            <string>УкраїнськеОновлення</string>
-            <key>CFBundleVersion</key>
-            <string>1.0</string>
-            <key>CFBundlePackageType</key>
-            <string>APPL</string>
-        </dict>
-        </plist>
-        EOF
-          chmod +x "UkrainianUpdate.app/Contents/MacOS/UkrainianUpdate"
-          mv "UkrainianUpdate.app" "dist/"
-          echo "App bundle created manually"
-        else
-          echo "ERROR: No build output found"
-          exit 1
-        fi
+    - name: Check dist folder
+      run: ls -la dist
     
-    - name: Archive Mac app
-      run: |
-        cd dist
-        zip -r "../UkrainianUpdate-Mac.zip" "UkrainianUpdate.app"
-    
-    - name: Upload Mac artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: mac-app
-        path: UkrainianUpdate-Mac.zip
+        path: dist/UkrainianUpdate-Mac
 
   build-linux:
     runs-on: ubuntu-latest
@@ -127,31 +73,24 @@ jobs:
         python-version: '3.11'
     
     - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-tk
+      run: sudo apt-get update && sudo apt-get install -y python3-tk
     
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
+    - name: List files
+      run: ls -la
     
-    - name: List files to debug
-      run: |
-        ls -la
-        echo "Looking for update_window.py..."
-        if [ -f "update_window.py" ]; then echo "Found update_window.py"; else echo "update_window.py NOT FOUND"; fi
+    - name: Install PyInstaller
+      run: pip install pyinstaller
     
-    - name: Build Linux executable
-      run: |
-        pyinstaller --onefile --windowed --name="UkrainianUpdate-Linux" update_window.py
+    - name: Build Linux app
+      run: pyinstaller --onefile --windowed --name="UkrainianUpdate-Linux" update_window.py
     
-    - name: Make executable and list files
-      run: |
-        chmod +x dist/UkrainianUpdate-Linux
-        ls -la dist/
+    - name: Check dist folder
+      run: ls -la dist
     
-    - name: Upload Linux artifact
+    - name: Make executable
+      run: chmod +x dist/UkrainianUpdate-Linux
+    
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: linux-app
